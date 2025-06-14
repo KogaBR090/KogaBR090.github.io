@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChemSys Pro - Simulador Virtual de Reações Químicas</title>
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#4361ee',secondary:'#3f37c9'},borderRadius:{'none':'0px','sm':'4px',DEFAULT:'8px','md':'12px','lg':'16px','xl':'20px','2xl':'24px','3xl':'32px','full':'9999px','button':'8px'}}}}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<style>
+:where([class^="ri-"])::before { content: "\f3c2"; }
+body {
+font-family: 'Inter', sans-serif;
+background-color: #f9fafb;
+}
+input:focus, button:focus {
+outline: none;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+-webkit-appearance: none;
+margin: 0;
+}
+input[type="range"] {
+appearance: none;
+-webkit-appearance: none;
+height: 6px;
+background: #e5e7eb;
+border-radius: 5px;
+background-image: linear-gradient(#4361ee, #4361ee);
+background-repeat: no-repeat;
+}
+input[type="range"]::-webkit-slider-thumb {
+-webkit-appearance: none;
+height: 18px;
+width: 18px;
+border-radius: 50%;
+background: #4361ee;
+cursor: pointer;
+box-shadow: 0 0 2px 0 #555;
+}
+.custom-checkbox {
+position: relative;
+display: inline-block;
+width: 20px;
+height: 20px;
+}
+.custom-checkbox input {
+opacity: 0;
+width: 0;
+height: 0;
+}
+.checkmark {
+position: absolute;
+top: 0;
+left: 0;
+height: 20px;
+width: 20px;
+background-color: #fff;
+border: 2px solid #d1d5db;
+border-radius: 4px;
+}
+.custom-checkbox input:checked ~ .checkmark {
+background-color: #4361ee;
+border-color: #4361ee;
+}
+.checkmark:after {
+content: "";
+position: absolute;
+display: none;
+}
+.custom-checkbox input:checked ~ .checkmark:after {
+display: block;
+}
+.custom-checkbox .checkmark:after {
+left: 6px;
+top: 2px;
+width: 5px;
+height: 10px;
+border: solid white;
+border-width: 0 2px 2px 0;
+transform: rotate(45deg);
+}
+.switch {
+position: relative;
+display: inline-block;
+width: 46px;
+height: 24px;
+}
+.switch input {
+opacity: 0;
+width: 0;
+height: 0;
+}
+.slider {
+position: absolute;
+cursor: pointer;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background-color: #e5e7eb;
+transition: .4s;
+border-radius: 24px;
+}
+.slider:before {
+position: absolute;
+content: "";
+height: 18px;
+width: 18px;
+left: 3px;
+bottom: 3px;
+background-color: white;
+transition: .4s;
+border-radius: 50%;
+}
+input:checked + .slider {
+background-color: #4361ee;
+}
+input:checked + .slider:before {
+transform: translateX(22px);
+}
+.custom-radio {
+position: relative;
+display: inline-block;
+width: 20px;
+height: 20px;
+}
+.custom-radio input {
+opacity: 0;
+width: 0;
+height: 0;
+}
+.radio-mark {
+position: absolute;
+top: 0;
+left: 0;
+height: 20px;
+width: 20px;
+background-color: #fff;
+border: 2px solid #d1d5db;
+border-radius: 50%;
+}
+.custom-radio input:checked ~ .radio-mark {
+border-color: #4361ee;
+}
+.radio-mark:after {
+content: "";
+position: absolute;
+display: none;
+top: 4px;
+left: 4px;
+width: 8px;
+height: 8px;
+border-radius: 50%;
+background: #4361ee;
+}
+.custom-radio input:checked ~ .radio-mark:after {
+display: block;
+}
+.tab-active {
+color: #4361ee;
+border-bottom: 2px solid #4361ee;
+}
+.molecule-3d {
+background-image: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(240,240,255,0.8) 100%);
+}
+.reaction-vessel {
+background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(240,240,255,0.9) 100%);
+border: 1px solid #e5e7eb;
+}
+.parameter-slider::-webkit-slider-runnable-track {
+height: 6px;
+border-radius: 3px;
+}
+
+#kineticChart.fade-in {
+  opacity: 0;
+  transition: opacity 0.5s ease-in;
+}
+#kineticChart.fade-in.show {
+  opacity: 1;
+}
+
+</style>
+</head>
+<body>
+<div class="min-h-screen flex flex-col">
+<!-- Login Section -->
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+<div class="bg-white p-10 rounded-lg shadow-lg w-full max-w-md">
+<div class="text-center mb-8">
+<h1 class="font-['Pacifico'] text-4xl text-primary">ChemSys</h1>
+<p class="text-gray-600 mt-2">Simulador Virtual de Reações Químicas</p>
+</div>
+<form class="space-y-6">
+<div>
+<label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email ou Nome de Usuário</label>
+<input type="text" id="email" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:ring-2 focus:ring-primary focus:border-primary" placeholder="Digite seu email ou nome de usuário">
+</div>
+<div>
+<label for="password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+<div class="relative">
+<input type="password" id="password" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:ring-2 focus:ring-primary focus:border-primary" placeholder="Digite sua senha">
+<button type="button" id="togglePassword" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-6 h-6 flex items-center justify-center">
+<i class="ri-eye-line"></i>
+</button>
+</div>
+</div>
+<div>
+<button type="button" id="loginBtn" class="w-full bg-primary text-white py-3 rounded-button hover:bg-opacity-90 transition-all duration-200 font-medium !rounded-button whitespace-nowrap">Entrar</button>
+</div>
+<div class="text-center">
+<a href="#" class="text-primary text-sm hover:underline">Esqueceu a Senha?</a>
+</div>
+</form>
+<div class="mt-6">
+<div class="relative">
+<div class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-gray-300"></div>
+</div>
+<div class="relative flex justify-center text-sm">
+<span class="px-2 bg-white text-gray-500">Ou continue com</span>
+</div>
+</div>
+<div class="mt-6 grid grid-cols-3 gap-3">
+<button type="button" class="flex justify-center items-center py-2 px-4 border border-gray-300 rounded-button hover:bg-gray-50 !rounded-button whitespace-nowrap">
+<i class="ri-google-fill text-lg text-red-500"></i>
+</button>
+<button type="button" class="flex justify-center items-center py-2 px-4 border border-gray-300 rounded-button hover:bg-gray-50 !rounded-button whitespace-nowrap">
+<i class="ri-linkedin-fill text-lg text-blue-600"></i>
+</button>
+<button type="button" class="flex justify-center items-center py-2 px-4 border border-gray-300 rounded-button hover:bg-gray-50 !rounded-button whitespace-nowrap">
+<i class="ri-building-4-line text-lg text-gray-700"></i>
+</button>
+</div>
+</div>
+<div class="mt-8 text-center">
+<p class="text-gray-600">Não tem uma conta? <a href="#" class="text-primary hover:underline font-medium">Criar Conta</a></p>
+</div>
+</div>
+</div>
+<!-- Main Dashboard (Hidden by default) -->
+<div id="dashboard" class="hidden h-screen flex flex-col">
+<!-- Top Navigation Bar -->
+<header class="bg-white border-b border-gray-200 py-3 px-6 flex items-center justify-between">
+<div class="flex items-center">
+<h1 class="font-['Pacifico'] text-2xl text-primary mr-8">ChemSys</h1>
+<nav class="hidden md:flex space-x-6">
+<a href="#" class="text-primary font-medium">Painel</a>
+<a href="#" class="text-gray-600 hover:text-primary">Projetos</a>
+<a href="https://readdy.ai/home/11f43f43-7373-4d08-acd3-9bc25aa6230b/08c37e66-1167-42e8-bd5e-f2859112be28" data-readdy="true" class="text-gray-600 hover:text-primary">Biblioteca</a>
+<a href="#" class="text-gray-600 hover:text-primary">Comunidade</a>
+</nav>
+</div>
+<div class="flex items-center space-x-4">
+<button type="button" class="text-gray-600 hover:text-primary relative w-10 h-10 flex items-center justify-center">
+<i class="ri-notification-3-line text-xl"></i>
+<span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+</button>
+<button type="button" class="text-gray-600 hover:text-primary w-10 h-10 flex items-center justify-center">
+<i class="ri-question-line text-xl"></i>
+</button>
+<div class="relative">
+<button id="userMenuBtn" type="button" class="flex items-center space-x-2">
+<div class="w-9 h-9 bg-indigo-100 rounded-full flex items-center justify-center text-primary font-medium">
+SA
+</div>
+<span class="hidden md:inline text-sm font-medium">Dra. Sabrinna Azuma</span>
+<i class="ri-arrow-down-s-line text-gray-500"></i>
+</button>
+<div id="userMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+<a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Perfil</a>
+<a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Configurações</a>
+<a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Ajuda</a>
+<div class="border-t border-gray-200 my-1"></div>
+<a href="#" id="logoutBtn" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Sair</a>
+</div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- Left Sidebar -->
+<aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
+<div class="p-4">
+<div class="relative">
+<input type="text" placeholder="Search components..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-button text-sm">
+<div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 flex items-center justify-center">
+<i class="ri-search-line"></i>
+</div>
+</div>
+</div>
+<nav class="flex-1 overflow-y-auto px-3 py-2">
+<div class="mb-6">
+<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">Livraria de componentes</h3>
+<ul class="space-y-1">
+<li>
+<a href="#" class="flex items-center px-3 py-2 text-sm rounded-md text-primary bg-blue-50 font-medium">
+<div class="w-5 h-5 mr-3 flex items-center justify-center">
+<i class="ri-flask-line"></i>
+</div>
+<span>Elemetnos</span>
+<span class="ml-auto bg-blue-100 text-primary text-xs px-2 py-0.5 rounded-full">118</span>
+</a>
+</li>
+<li>
+<a href="#" class="flex items-center px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+<div class="w-5 h-5 mr-3 flex items-center justify-center">
+<i class="ri-atom-line"></i>
+</div>
+<span>Compostos químicos</span>
+<span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">1.2k</span>
+</a>
+</li>
+<li>
+<a href="#" class="flex items-center px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+<div class="w-5 h-5 mr-3 flex items-center justify-center">
+<i class="ri-test-tube-line"></i>
+</div>
+<span>Soluções</span>
+<span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">342</span>
+</a>
+</li>
+<li>
+<a href="#" class="flex items-center px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+<div class="w-5 h-5 mr-3 flex items-center justify-center">
+<i class="ri-scales-3-line"></i>
+</div>
+<span>Catalisadores</span>
+<span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">87</span>
+</a>
+</li>
+</ul>
+</div>
+<div class="mb-6">
+<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">Meus experimentos</h3>
+<ul class="space-y-1">
+<li>
+<a href="#" class="flex items-center px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+<div class="w-5 h-5 mr-3 flex items-center justify-center">
+<i class="ri-bookmark-line"></i>
+</div>
+<span>Experimentos Salvos</span>
+</a>
+</li>
+<li>
+<a href="#" class="flex items-center px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+<div class="w-5 h-5 mr-3 flex items-center justify-center">
+<i class="ri-history-line"></i>
+</div>
+<span>Simulações recentes</span>
+</a>
+</li>
+<li>
+<a href="#" class="flex items-center px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+<div class="w-5 h-5 mr-3 flex items-center justify-center">
+<i class="ri-share-line"></i>
+</div>
+<span>Compartilhe</span>
+</a>
+</li>
+</ul>
+</div>
+<div>
+<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">Ajuda e Recursos</h3>
+<ul class="space-y-1">
+<li>
+<a href="#" class="flex items-center px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+<div class="w-5 h-5 mr-3 flex items-center justify-center">
+<i class="ri-book-open-line"></i>
+</div>
+<span>Documentação</span>
+</a>
+</li>
+<li>
+<a href="#" class="flex items-center px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+<div class="w-5 h-5 mr-3 flex items-center justify-center">
+<i class="ri-video-line"></i>
+</div>
+<span>Tutoriais</span>
+</a>
+</li>
+<li>
+<a href="#" class="flex items-center px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+<div class="w-5 h-5 mr-3 flex items-center justify-center">
+<i class="ri-message-3-line"></i>
+</div>
+<span>Comunidade</span>
+</a>
+</li>
+</ul>
+</div>
+</nav>
+<div class="p-4 border-t border-gray-200">
+<button type="button" class="flex items-center justify-center w-full px-4 py-2 bg-primary text-white rounded-button hover:bg-opacity-90 !rounded-button whitespace-nowrap">
+<div class="w-5 h-5 mr-2 flex items-center justify-center">
+<i class="ri-add-line"></i>
+</div>
+<span>Novo experimento</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex overflow-hidden">
+<!-- Central Workspace -->
+<div class="flex-1 overflow-y-auto bg-gray-50 p-6">
+<div class="mb-6">
+<h2 class="text-2xl font-bold text-gray-800">Espaço de trabalho</h2>
+<p class="text-gray-600">Configure e simule sua reação</p>
+</div>
+<!-- Tabs -->
+<div class="bg-white rounded-lg shadow-sm mb-6">
+<div class="border-b border-gray-200">
+<nav class="flex -mb-px">
+<button type="button" class="tab-active px-6 py-3 border-b-2 text-sm font-medium">Setup</button>
+<button type="button" class="text-gray-500 hover:text-gray-700 px-6 py-3 text-sm font-medium">Simulação</button>
+<button type="button" class="text-gray-500 hover:text-gray-700 px-6 py-3 text-sm font-medium">Resultados</button>
+<button type="button" class="text-gray-500 hover:text-gray-700 px-6 py-3 text-sm font-medium">Análise</button>
+</nav>
+</div>
+<div class="p-6">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Component Selection -->
+<div class="lg:col-span-2">
+<h3 class="text-lg font-medium text-gray-800 mb-4">Componentes químicos</h3>
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+<!-- Component Cards -->
+<div class="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-primary hover:shadow-sm transition-all">
+<div class="flex justify-between items-start mb-2">
+<div class="w-10 h-10 flex items-center justify-center bg-blue-100 rounded-md text-primary font-semibold">H</div>
+<span class="text-xs text-gray-500">1.008</span>
+</div>
+<h4 class="font-medium">Hidrogênio</h4>
+<p class="text-xs text-gray-500">Gás, Incolor</p>
+</div>
+<div class="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-primary hover:shadow-sm transition-all">
+<div class="flex justify-between items-start mb-2">
+<div class="w-10 h-10 flex items-center justify-center bg-blue-100 rounded-md text-primary font-semibold">O</div>
+<span class="text-xs text-gray-500">16.00</span>
+</div>
+<h4 class="font-medium">Oxigênio</h4>
+<p class="text-xs text-gray-500">Gás, Incolor</p>
+</div>
+<div class="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-primary hover:shadow-sm transition-all">
+<div class="flex justify-between items-start mb-2">
+<div class="w-10 h-10 flex items-center justify-center bg-blue-100 rounded-md text-primary font-semibold">C</div>
+<span class="text-xs text-gray-500">12.01</span>
+</div>
+<h4 class="font-medium">Carbono</h4>
+<p class="text-xs text-gray-500">Sólido, Preto</p>
+</div>
+<div class="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-primary hover:shadow-sm transition-all">
+<div class="flex justify-between items-start mb-2">
+<div class="w-10 h-10 flex items-center justify-center bg-blue-100 rounded-md text-primary font-semibold">N</div>
+<span class="text-xs text-gray-500">14.01</span>
+</div>
+<h4 class="font-medium">Nitrogênio</h4>
+<p class="text-xs text-gray-500">Gás, Incolor</p>
+</div>
+<div class="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-primary hover:shadow-sm transition-all">
+<div class="flex justify-between items-start mb-2">
+<div class="w-10 h-10 flex items-center justify-center bg-blue-100 rounded-md text-primary font-semibold">Na</div>
+<span class="text-xs text-gray-500">22.99</span>
+</div>
+<h4 class="font-medium">Sódio</h4>
+<p class="text-xs text-gray-500">Sólido, Prata</p>
+</div>
+<div class="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-primary hover:shadow-sm transition-all">
+<div class="flex justify-between items-start mb-2">
+<div class="w-10 h-10 flex items-center justify-center bg-blue-100 rounded-md text-primary font-semibold">Cl</div>
+<span class="text-xs text-gray-500">35.45</span>
+</div>
+<h4 class="font-medium">Cloro</h4>
+<p class="text-xs text-gray-500">Gás, Amarelo</p>
+</div>
+<div class="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-primary hover:shadow-sm transition-all">
+<div class="flex justify-between items-start mb-2">
+<div class="w-10 h-10 flex items-center justify-center bg-blue-100 rounded-md text-primary font-semibold">Fe</div>
+<span class="text-xs text-gray-500">55.85</span>
+</div>
+<h4 class="font-medium">Ferro</h4>
+<p class="text-xs text-gray-500">Sólido, Prata</p>
+</div>
+<div class="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-primary hover:shadow-sm transition-all">
+<div class="flex justify-between items-start mb-2">
+<div class="w-10 h-10 flex items-center justify-center bg-blue-100 rounded-md text-primary font-semibold">Cu</div>
+<span class="text-xs text-gray-500">63.55</span>
+</div>
+<h4 class="font-medium">Cobre</h4>
+<p class="text-xs text-gray-500">Sólido, Vermelho</p>
+</div>
+</div>
+<div class="mt-6">
+<h3 class="text-lg font-medium text-gray-800 mb-4">Reator dimensionado</h3>
+<div class="bg-white border border-gray-200 rounded-lg p-4">
+<div class="flex flex-col md:flex-row gap-4">
+<div class="flex-1">
+<div class="molecule-3d h-64 rounded-lg flex items-center justify-center">
+<div class="text-center">
+<div class="w-16 h-16 mx-auto flex items-center justify-center">
+<i class="ri-cube-line text-5xl text-primary opacity-50"></i>
+</div>
+<p class="text-gray-500 mt-2">Arraste os componentes<br>Vizualise a estrutura</p>
+</div>
+</div>
+</div>
+<div class="flex-1">
+<div class="reaction-vessel h-64 rounded-lg flex items-center justify-center relative">
+<div class="absolute inset-0 flex flex-col">
+<div class="flex-1 border-b border-dashed border-gray-300 flex items-end justify-center pb-2">
+<span class="text-xs text-gray-400">Gasoso</span>
+</div>
+<div class="flex-1 border-b border-dashed border-gray-300 flex items-end justify-center pb-2">
+<span class="text-xs text-gray-400">Líquido</span>
+</div>
+<div class="flex-1 flex items-end justify-center pb-2">
+<span class="text-xs text-gray-400">Sólido</span>
+</div>
+</div>
+<div class="text-center z-10">
+<div class="w-16 h-16 mx-auto flex items-center justify-center">
+<i class="ri-flask-line text-5xl text-primary opacity-50"></i>
+</div>
+<p class="text-gray-500 mt-2">Arraste os componentes<br>Vizualise a estrutura</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Parameter Controls -->
+<div>
+<h3 class="text-lg font-medium text-gray-800 mb-4">Parâmetros</h3>
+<div class="bg-white border border-gray-200 rounded-lg p-4 space-y-5">
+<div>
+<label class="flex justify-between text-sm font-medium text-gray-700 mb-2">
+<span>Temperatura</span>
+<span id="tempValue">25°C</span>
+</label>
+<input type="range" min="-50" max="500" value="25" class="w-full parameter-slider" id="tempSlider">
+<div class="flex justify-between text-xs text-gray-500 mt-1">
+<span>-50°C</span>
+<span>500°C</span>
+</div>
+</div>
+<div>
+<label class="flex justify-between text-sm font-medium text-gray-700 mb-2">
+<span>Pressão</span>
+<span id="pressureValue">1.0 atm</span>
+</label>
+<input type="range" min="0.1" max="10" step="0.1" value="1" class="w-full parameter-slider" id="pressureSlider">
+<div class="flex justify-between text-xs text-gray-500 mt-1">
+<span>0.1 atm</span>
+<span>10 atm</span>
+</div>
+</div>
+<div>
+<label class="flex justify-between text-sm font-medium text-gray-700 mb-2">
+<span>Level do pH</span>
+<span id="phValue">7.0</span>
+</label>
+<input type="range" min="0" max="14" step="0.1" value="7" class="w-full parameter-slider" id="phSlider">
+<div class="flex justify-between text-xs text-gray-500 mt-1">
+<span>0 (Ácido)</span>
+<span>14 (Básico)</span>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-2">Concentração</label>
+<div class="flex space-x-2">
+<input type="number" value="1.0" min="0" step="0.1" class="flex-1 px-3 py-2 border border-gray-300 rounded-button text-sm">
+<select class="px-3 py-2 border border-gray-300 rounded-button text-sm pr-8">
+<option>mol/L</option>
+<option>g/L</option>
+<option>mg/mL</option>
+</select>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-2">Tempo em reação</label>
+<div class="flex space-x-2">
+<input type="number" value="60" min="0" class="flex-1 px-3 py-2 border border-gray-300 rounded-button text-sm">
+<select class="px-3 py-2 border border-gray-300 rounded-button text-sm pr-8">
+<option>Segundos</option>
+<option>Minutos</option>
+<option>Horas</option>
+</select>
+</div>
+</div>
+<div>
+<label class="flex items-center space-x-2 text-sm font-medium text-gray-700">
+<span>Catalizadores</span>
+<label class="switch ml-auto">
+<input type="checkbox" id="catalystToggle">
+<span class="slider"></span>
+</label>
+</label>
+</div>
+<div id="catalystOptions" class="hidden pt-2">
+<select class="w-full px-3 py-2 border border-gray-300 rounded-button text-sm pr-8">
+<option>Selecione o catalizador...</option>
+<option>Platina (Pt)</option>
+<option>Paladium (Pd)</option>
+<option>Niquel (Ni)</option>
+<option>Ferro (Fe)</option>
+<option>Zeólito</option>
+</select>
+</div>
+<div class="pt-2">
+<button type="button" class="w-full bg-primary text-white py-2 rounded-button hover:bg-opacity-90 !rounded-button whitespace-nowrap">
+Simular reação
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Analysis Dashboard -->
+<div class="bg-white rounded-lg shadow-sm">
+<div class="border-b border-gray-200 px-6 py-4">
+<h3 class="text-lg font-medium text-gray-800">Reação em andamento</h3>
+</div>
+<div class="p-6">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Reaction Progress & Accuracy -->
+<div>
+<div class="bg-gray-50 rounded-lg p-4 mb-6">
+<h4 class="text-sm font-medium text-gray-700 mb-3">Progresso</h4>
+<div class="relative pt-1">
+<div class="flex mb-2 items-center justify-between">
+<div>
+<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-primary bg-blue-100">
+Em progresso
+</span>
+</div>
+<div class="text-right">
+<span class="text-xs font-semibold inline-block text-primary">
+68%
+</span>
+</div>
+</div>
+<div class="overflow-hidden h-2 mb-4 text-xs flex rounded-full bg-blue-50">
+<div style="width: 68%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary"></div>
+</div>
+</div>
+</div>
+<div class="bg-gray-50 rounded-lg p-4">
+<h4 class="text-sm font-medium text-gray-700 mb-3">Chance de acertividade</h4>
+<div class="flex items-center justify-center">
+<div class="relative w-32 h-32">
+<svg class="w-full h-full" viewBox="0 0 100 100">
+<circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" stroke-width="8" />
+<circle cx="50" cy="50" r="45" fill="none" stroke="#4361ee" stroke-width="8" stroke-dasharray="282.7" stroke-dashoffset="85" transform="rotate(-90 50 50)" />
+<text x="50" y="50" font-family="Inter" font-size="20" text-anchor="middle" dy="7" fill="#4361ee" font-weight="600">70,43%</text>
+</svg>
+</div>
+</div>
+<div class="text-center mt-2 text-sm text-gray-600">
+Previssão
+</div>
+</div>
+</div>
+<!-- Reaction Kinetics Graph -->
+<div class="lg:col-span-2">
+<div class="bg-gray-50 rounded-lg p-4 h-full">
+<h4 class="text-sm font-medium text-gray-700 mb-3">Reação cinética</h4>
+<div id="kineticChart" class="w-full h-64" style="min-height: 256px;"></div>
+<div class="grid grid-cols-2 gap-4 mt-4">
+<div>
+<h5 class="text-xs font-medium text-gray-700 mb-1">Energia</h5>
+<p class="text-sm">78.4 kJ/mol</p>
+</div>
+<div>
+<h5 class="text-xs font-medium text-gray-700 mb-1">Variação Constante</h5>
+<p class="text-sm">2.3 × 10<sup>-3</sup> s<sup>-1</sup></p>
+</div>
+<div>
+<h5 class="text-xs font-medium text-gray-700 mb-1">Tempo de decaimento</h5>
+<p class="text-sm">301.4 seconds</p>
+</div>
+<div>
+<h5 class="text-xs font-medium text-gray-700 mb-1">Ordem da reação</h5>
+<p class="text-sm">Primeira ordem</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- AI Suggestions -->
+<div class="mt-6">
+<h4 class="text-sm font-medium text-gray-700 mb-3">Otimização da IA</h4>
+<div class="bg-gray-50 rounded-lg p-4">
+<div class="flex items-start">
+<div class="w-10 h-10 flex items-center justify-center bg-blue-100 rounded-full text-primary mr-4">
+<i class="ri-robot-line text-xl"></i>
+</div>
+<div>
+<h5 class="font-medium text-gray-800">Reação optimizada</h5>
+<p class="text-sm text-gray-600 mt-1">Com base nos parâmetros atuais, recomendo os seguintes ajustes para melhorar o rendimento e a eficiência:</p>
+<ul class="mt-2 space-y-2">
+<li class="flex items-start">
+<div class="w-5 h-5 flex items-center justify-center text-green-500 mt-0.5">
+<i class="ri-arrow-up-line"></i>
+</div>
+<div class="ml-2">
+<p class="text-sm"><span class="font-medium">Aumentar a temperatura para 42°C</span> - Isso acelerará a taxa de reação sem degradar o produto.</p>
+</div>
+</li>
+<li class="flex items-start">
+<div class="w-5 h-5 flex items-center justify-center text-blue-500 mt-0.5">
+<i class="ri-add-line"></i>
+</div>
+<div class="ml-2">
+<p class="text-sm"><span class="font-medium">Adicionar catalisador de platina (0,5% w/w)</span> - Isso reduzirá a energia de ativação e aumentará a seletividade.</p>
+</div>
+</li>
+<li class="flex items-start">
+<div class="w-5 h-5 flex items-center justify-center text-yellow-500 mt-0.5">
+<i class="ri-arrow-down-line"></i>
+</div>
+<div class="ml-2">
+<p class="text-sm"><span class="font-medium">Reduza o pH 6.2</span> - Isso otimizará o estado de protonação dos reagentes.</p>
+</div>
+</li>
+</ul>
+<div class="mt-4 flex space-x-3">
+<button type="button" class="px-3 py-1.5 bg-primary text-white text-sm rounded-button hover:bg-opacity-90 !rounded-button whitespace-nowrap">
+Aplicar sugestões
+</button>
+<button type="button" class="px-3 py-1.5 border border-gray-300 text-gray-700 text-sm rounded-button hover:bg-gray-50 !rounded-button whitespace-nowrap">
+Veja os detalhes
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Export Options -->
+<div class="mt-6 flex justify-end space-x-3">
+<button type="button" class="px-4 py-2 border border-gray-300 rounded-button text-gray-700 hover:bg-gray-50 flex items-center !rounded-button whitespace-nowrap">
+<div class="w-5 h-5 mr-2 flex items-center justify-center">
+<i class="ri-file-pdf-line"></i>
+</div>
+<span>Exportar PDF</span>
+</button>
+<button type="button" class="px-4 py-2 border border-gray-300 rounded-button text-gray-700 hover:bg-gray-50 flex items-center !rounded-button whitespace-nowrap">
+<div class="w-5 h-5 mr-2 flex items-center justify-center">
+<i class="ri-file-excel-line"></i>
+</div>
+<span>Exportar banco</span>
+</button>
+<button type="button" class="px-4 py-2 bg-primary text-white rounded-button hover:bg-opacity-90 flex items-center !rounded-button whitespace-nowrap">
+<div class="w-5 h-5 mr-2 flex items-center justify-center">
+<i class="ri-save-line"></i>
+</div>
+<span>Salvar experimento</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</div>
+<script id="loginScript">
+document.addEventListener('DOMContentLoaded', function() {
+const loginBtn = document.getElementById('loginBtn');
+const dashboard = document.getElementById('dashboard');
+const togglePassword = document.getElementById('togglePassword');
+const passwordInput = document.getElementById('password');
+loginBtn.addEventListener('click', function() {
+document.querySelector('.min-h-screen.flex.items-center').classList.add('hidden');
+dashboard.classList.remove('hidden');
+});
+togglePassword.addEventListener('click', function() {
+const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+passwordInput.setAttribute('type', type);
+togglePassword.innerHTML = type === 'password' ? '<i class="ri-eye-line"></i>' : '<i class="ri-eye-off-line"></i>';
+});
+});
+</script>
+<script id="userMenuScript">
+document.addEventListener('DOMContentLoaded', function() {
+const userMenuBtn = document.getElementById('userMenuBtn');
+const userMenu = document.getElementById('userMenu');
+const logoutBtn = document.getElementById('logoutBtn');
+userMenuBtn.addEventListener('click', function() {
+userMenu.classList.toggle('hidden');
+});
+document.addEventListener('click', function(event) {
+if (!userMenuBtn.contains(event.target) && !userMenu.contains(event.target)) {
+userMenu.classList.add('hidden');
+}
+});
+logoutBtn.addEventListener('click', function() {
+dashboard.classList.add('hidden');
+document.querySelector('.min-h-screen.flex.items-center').classList.remove('hidden');
+});
+});
+</script>
+<script id="parameterControlsScript">
+document.addEventListener('DOMContentLoaded', function() {
+const tempSlider = document.getElementById('tempSlider');
+const tempValue = document.getElementById('tempValue');
+const pressureSlider = document.getElementById('pressureSlider');
+const pressureValue = document.getElementById('pressureValue');
+const phSlider = document.getElementById('phSlider');
+const phValue = document.getElementById('phValue');
+const catalystToggle = document.getElementById('catalystToggle');
+const catalystOptions = document.getElementById('catalystOptions');
+tempSlider.addEventListener('input', function() {
+tempValue.textContent = `${this.value}°C`;
+updateSliderBackground(this);
+});
+pressureSlider.addEventListener('input', function() {
+pressureValue.textContent = `${this.value} atm`;
+updateSliderBackground(this);
+});
+phSlider.addEventListener('input', function() {
+phValue.textContent = this.value;
+updateSliderBackground(this);
+});
+catalystToggle.addEventListener('change', function() {
+if (this.checked) {
+catalystOptions.classList.remove('hidden');
+} else {
+catalystOptions.classList.add('hidden');
+}
+});
+function updateSliderBackground(slider) {
+const min = slider.min;
+const max = slider.max;
+const val = slider.value;
+const percentage = ((val - min) / (max - min)) * 100;
+slider.style.backgroundImage = `linear-gradient(to right, #4361ee ${percentage}%, #e5e7eb ${percentage}%)`;
+}
+// Initialize slider backgrounds
+updateSliderBackground(tempSlider);
+updateSliderBackground(pressureSlider);
+updateSliderBackground(phSlider);
+});
+</script>
+
+
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const loginBtn = document.getElementById('loginBtn');
+  const dashboard = document.getElementById('dashboard');
+  const kineticChart = document.getElementById('kineticChart');
+
+  loginBtn.addEventListener('click', function () {
+    document.querySelector('.min-h-screen.flex.items-center').classList.add('hidden');
+    dashboard.classList.remove('hidden');
+
+    kineticChart.classList.add('fade-in');
+    setTimeout(() => {
+      kineticChart.classList.add('show');
+      const chart = echarts.init(kineticChart);
+      const option = {
+        animationDuration: 3500,
+        animationEasing: 'cubicOut',
+        grid: { top: 10, right: 10, bottom: 30, left: 50 },
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          borderColor: '#e5e7eb',
+          textStyle: { color: '#1f2937' }
+        },
+        xAxis: {
+          type: 'category',
+          data: ['0s', '10s', '20s', '30s', '40s', '50s', '60s', '70s', '80s', '90s'],
+          axisLine: { lineStyle: { color: '#d1d5db' } },
+          axisLabel: { color: '#1f2937' }
+        },
+        yAxis: {
+          type: 'value',
+          name: 'Concentração (mol/L)',
+          nameTextStyle: { color: '#1f2937' },
+          axisLine: { lineStyle: { color: '#d1d5db' } },
+          axisLabel: { color: '#1f2937' },
+          splitLine: { lineStyle: { color: '#e5e7eb' } }
+        },
+        series: [
+          {
+            name: 'Reação A',
+            type: 'line',
+            smooth: true,
+            symbol: 'none',
+            animationDuration: 6000,
+            animationEasing: 'cubicOut',
+            data: [1.0, 0.82, 0.67, 0.55, 0.45, 0.37, 0.30, 0.25, 0.20, 0.17],
+            lineStyle: { width: 3, color: 'rgba(87, 181, 231, 1)' },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(87, 181, 231, 0.2)' },
+                  { offset: 1, color: 'rgba(87, 181, 231, 0.05)' }
+                ]
+              }
+            }
+          },
+          {
+            name: 'Produto B',
+            type: 'line',
+            smooth: true,
+            symbol: 'none',
+            animationDuration: 6000,
+            animationEasing: 'cubicOut',
+            data: [0, 0.18, 0.33, 0.45, 0.55, 0.63, 0.70, 0.75, 0.80, 0.83],
+            lineStyle: { width: 3, color: 'rgba(141, 211, 199, 1)' },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(141, 211, 199, 0.2)' },
+                  { offset: 1, color: 'rgba(141, 211, 199, 0.05)' }
+                ]
+              }
+            }
+          }
+        ]
+      };
+      chart.setOption(option);
+      window.addEventListener('resize', () => chart.resize());
+    }, 3000); // atraso maior antes de desenhar o gráfico
+  });
+});
+</script>
+
+</body>
+</html>
